@@ -31,24 +31,27 @@ export default function App(props) {
   const [disableSubmit, setDisableSubmit] = useState(true);
   const [errorInputName, seterrorInputName] = useState('');
   const [errorInputCRQ, seterrorInputCRQ] = useState('');
+  const [errorInputVersion, seterrorInputVersion] = useState('');
   const [errorInputFrente, seterrorInputFrente] = useState('');
+
   const [Name, setName] = useState('');
   const [CRQ, setCRQ] = useState('');
   const [Frente, setFrente] = useState('');
+  const [Version, setVersion] = useState('');
   const [myFiles, setmyFiles] = useState({});
   const [openAlert, setOpenAlert] = useState(false);
   const [MsgFile, setMsgFile] = useState('');
   
   useEffect(() => {
     //files.forEach((file) => URL.revokeObjectURL(file.preview)); 
-    if (Name.length > 0 && CRQ.length > 0 && Frente.length > 0 && myFiles.length > 0){
+    if (Name.length > 0 && CRQ.length > 0 && Frente.length > 0 && Version.length > 0 && myFiles.length > 0){
       console.log('Cambia')
       setDisableSubmit(false);
     }
     else{
       setDisableSubmit(true);
     }
-  }, [Name,CRQ,Frente,myFiles]);
+  }, [Name,CRQ,Frente,Version,myFiles]);
 
 
   /*function addFile(file) {
@@ -62,26 +65,43 @@ export default function App(props) {
     });
   };*/
 
-  function handleError(e) {
-    console.log(e.target.name)
-    console.log(e.target.value)
-
-    if (e.target.value === '' && e.target.required){
-      if (e.target.name === 'Nombre'){
-        seterrorInputName('El '+ e.target.name + ' es requerido para crear la paquetizacion')
-      }
-      if (e.target.name === 'CRQ'){
-        seterrorInputCRQ('El '+ e.target.name + ' es requerido para crear la paquetizacion')
-      }
-      if (e.target.name === 'Frente'){
-        seterrorInputFrente('El '+ e.target.name + ' es requerido para crear la paquetizacion')
-      }
-    }else{
-
-      seterrorInputName('')
-      seterrorInputCRQ('')
-      seterrorInputFrente('')
-      
+  function handleError(e) {    
+    switch (e.target.name){
+      case 'Nombre':
+        if (e.target.value === '' && e.target.required){
+          seterrorInputName('El '+ e.target.name + ' es requerido para crear la paquetizacion');
+        }
+        break;
+      case 'CRQ':
+        if (e.target.value === '' && e.target.required){
+          seterrorInputCRQ('El '+ e.target.name + ' es requerido para crear la paquetizacion');
+        }
+        break;
+      case 'Frente':
+        if (e.target.value === '' && e.target.required){
+          seterrorInputFrente('El '+ e.target.name + ' es requerido para crear la paquetizacion');
+        }
+        break;
+      case 'Version':
+        //eslint-disable-next-line
+        const regex = /^\d+\.\d+\.\d+$/;
+        if (e.target.value === '' && e.target.required){
+          seterrorInputVersion('La '+ e.target.name + ' es requerida para crear la paquetizacion');
+        }
+        else{
+          if (regex.test(e.target.value)){
+            seterrorInputVersion('')
+          }
+          else{
+            seterrorInputVersion('Introduzca la version correctamente para crear la paquetizacion ');
+          }
+        }
+        break;
+      default:
+        seterrorInputName('')
+        seterrorInputCRQ('')
+        seterrorInputFrente('')
+        seterrorInputVersion('')
     }
   }
 
@@ -132,7 +152,7 @@ export default function App(props) {
           <div style={{width:'63%',border:'dashed',padding:'20px 0 20px 0',fontFamily:'monospace', fontSize:'13px'}}>  
             <h4>1- Ingresa el Nombre y/o Descripcion de la paquetizacion para dejarlo en<br/>los comentarios del archivo .drv</h4>
             <h4>2- Ingresa el CRQ correspondiente, esto sirve para ponerle el nombre a los<br/>Archivos Zipeados y tambien colocar en el archivo .drv</h4>
-            <h4>3- Elegi el Frente en el cual estuviste trabajando, tambien se va a colocar como<br/>formato del archivo zipeado y .drv</h4>
+            <h4>3- Elegi el Frente en el cual estuviste trabajando y la Version de la paquetizacion<br/>tambien se va a colocar como formato del archivo zipeado y .drv</h4>
             <h4>4- Carga los archivos de los Procedimientos/Scripts necesarios que tenes que entregar.</h4>
             <h4>5- Corrobora que todo este correcto y presiona Generar.<br/><br/>Listo! Esto te va a abrir una ventana donde vas a poder guardar el .zip con la entrega generada.</h4>
           </div>
@@ -146,6 +166,10 @@ export default function App(props) {
               {errorInputCRQ ? <h5 style={{color:'red', margin:'0'}}>{errorInputCRQ}</h5> : ''}
             </div>
             <div style={{padding:'20px 0 20px 0'}}>
+              <TextField onChange={(e) => { handleError(e); setVersion(e.target.value)}} onFocus={() => seterrorInputVersion('')} name='Version' onBlur={ (e) => handleError(e)} style={{width:'60%'}} required label="Version"/>
+              {errorInputVersion ? <h5 style={{color:'red', margin:'0'}}>{errorInputVersion}</h5> : ''}
+            </div>
+            <div style={{padding:'20px 0 20px 0'}}>
               <Select onChange={(e) => setFrente(e.target.value)} onFocus={() => seterrorInputFrente('')} 
                       native
                       required
@@ -153,7 +177,7 @@ export default function App(props) {
                       style={{width:'60%'}}
                       defaultValue=''
                       onBlur={ (e) => handleError(e)}>
-                <option label="Seleccione un valor" value='' />
+                <option label="Seleccione un Frente" value='' />
                 <option value={'CRM'}>CRM</option>
                 <option value={'Billing'}>Billing</option>
                 <option value={'Cobranzas'}>Cobranzas</option>
