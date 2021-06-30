@@ -37,17 +37,20 @@ export default function DragDrop(props) {
 
   const [myFiles, setMyFiles] = useState([])
 
+
   const onDrop = useCallback(acceptedFiles => {
+    let RepeatFiles = [];
     acceptedFiles.forEach((file) => {
       myFiles.forEach(function (myfile) {
         if (myfile.path === file.path){
           myFiles.splice(myFiles.indexOf(myfile), 1)
-          console.log('No se agrego archivo')
-          console.log(props)
-          props.showAlert(true, myfile.path)
+          RepeatFiles.push(file)  
         }
       });
     })
+    if (RepeatFiles.length > 0){
+      props.showAlert(true, RepeatFiles)
+    }
     setMyFiles([...myFiles, ...acceptedFiles])
   }, [myFiles, props])
 
@@ -99,10 +102,10 @@ export default function DragDrop(props) {
     <div style={{alignItems:'center'}} className="container">
         <div {...getRootProps({style})}>
             <input required {...getInputProps()} />
-            {myFiles.length > 0 ? <h1>{myFiles.length} Archivos subidos</h1>: <p>Agrega los procedimientos y/o scripts que queres entregar en el aplica arrastrandolos o haciendo click en el cuadro</p>}
+            {myFiles.length > 0 ? <h1>{myFiles.length} {myFiles.length > 1 ? 'Archivos de '+ props.tipoArchivos + ' subidos': 'Archivo de ' + props.tipoArchivos +' subido'}</h1>: <p>Agrega los procedimientos y/o scripts que queres entregar en el {props.tipoArchivos} arrastrandolos o haciendo click en el cuadro</p>}
         </div>
         <aside style={{paddingBottom:'25px'}}>
-            {myFiles.length > 0 ? <h3>Files</h3> : ''}
+            {myFiles.length > 0 ? <h3>{props.tipoArchivos} Files</h3> : ''}
             {files}
         </aside>
     </div>
