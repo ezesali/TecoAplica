@@ -51,7 +51,7 @@ export default function App(props) {
     else{
       setDisableSubmit(true);
     }
-  }, [Name,CRQ,Frente,Version,myFiles, myRbkFiles]);
+  }, [Name, errorInputName, CRQ, errorInputCRQ, Frente, errorInputFrente,Version, errorInputVersion,myFiles, myRbkFiles]);
 
   function handleError(e) {    
     switch (e.target.name){
