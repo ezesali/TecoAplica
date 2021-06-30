@@ -5,9 +5,6 @@
 /.pnp
 .pnp.js
 
-# Paquetization Structure Folder
-/PaqStructure
-
 # testing
 /coverage
 
