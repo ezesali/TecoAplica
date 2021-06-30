@@ -39,19 +39,31 @@ export default function App(props) {
   const [Frente, setFrente] = useState('');
   const [Version, setVersion] = useState('');
   const [myFiles, setmyFiles] = useState({});
-  const [myRbkFiles, setmyRbkFiles] = useState({});
   const [openAlert, setOpenAlert] = useState(false);
-  const [MsgFile, setMsgFile] = useState([]);
+  const [MsgFile, setMsgFile] = useState('');
   
   useEffect(() => {
     //files.forEach((file) => URL.revokeObjectURL(file.preview)); 
-    if (Name.length > 0 && errorInputName === '' && CRQ.length > 0 && errorInputCRQ === '' && Frente.length > 0 && errorInputFrente === '' && Version.length > 0 && errorInputVersion === '' && myFiles.length > 0 && myRbkFiles.length > 0 ){
+    if (Name.length > 0 && CRQ.length > 0 && Frente.length > 0 && Version.length > 0 && myFiles.length > 0){
+      console.log('Cambia')
       setDisableSubmit(false);
     }
     else{
       setDisableSubmit(true);
     }
-  }, [Name,CRQ,Frente,Version,myFiles, myRbkFiles]);
+  }, [Name,CRQ,Frente,Version,myFiles]);
+
+
+  /*function addFile(file) {
+    console.log(file);
+    setfiles({
+      files: file.map((file) =>
+        Object.assign(file, {
+          preview: URL.createObjectURL(file)
+        })
+      )
+    });
+  };*/
 
   function handleError(e) {    
     switch (e.target.name){
@@ -98,46 +110,24 @@ export default function App(props) {
   };
 
   function showAlert(){
-    if (MsgFile.length > 1){
-      return (
-        <Dialog onClose={handleCloseAlert} open={openAlert}>
-          <DialogTitle onClose={handleCloseAlert}>
-            Error
-          </DialogTitle>
-          <DialogContent dividers>
-            <Typography gutterBottom>
-              Los siguientes archivos no se pueden agregar ya que se agregaron anteriormente
-              {MsgFile.map(function(file, i){
-              return <li key={i}>"{file.path}"</li>
-              })}
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button autoFocus onClick={handleCloseAlert} color="primary">
-              Entendido
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )  
-    }else if (MsgFile.length === 1){
-      return (
-        <Dialog onClose={handleCloseAlert} open={openAlert}>
-          <DialogTitle onClose={handleCloseAlert}>
-            Error
-          </DialogTitle>
-          <DialogContent dividers>
-            <Typography gutterBottom>
-              El archivo "{MsgFile[0].path}" no se puede agregar ya que se agrego anteriormente
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button autoFocus onClick={handleCloseAlert} color="primary">
-              Entendido
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )
-    }
+    return (
+      <Dialog onClose={handleCloseAlert} open={openAlert}>
+        <DialogTitle onClose={handleCloseAlert}>
+          Error
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography gutterBottom>
+            El archivo "{MsgFile}" no se puede agregar ya que se agrego anteriormente
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={handleCloseAlert} color="primary">
+            Entendido
+          </Button>
+        </DialogActions>
+      </Dialog>
+    )
+
   }
 
   return (
@@ -172,11 +162,11 @@ export default function App(props) {
               {errorInputName ? <h5 style={{color:'red', margin:'0'}}>{errorInputName}</h5> : ''}
             </div>
             <div style={{padding:'20px 0 20px 0'}}>
-              <TextField onChange={(e) => setCRQ(e.target.value)} onFocus={() => seterrorInputCRQ('')} name='CRQ' onBlur={ (e) => handleError(e)} style={{width:'60%'}} placeholder="CRQXXXXXXXXXX" required label="CRQ"/>
+              <TextField onChange={(e) => setCRQ(e.target.value)} onFocus={() => seterrorInputCRQ('')} name='CRQ' onBlur={ (e) => handleError(e)} style={{width:'60%'}} required label="CRQ"/>
               {errorInputCRQ ? <h5 style={{color:'red', margin:'0'}}>{errorInputCRQ}</h5> : ''}
             </div>
             <div style={{padding:'20px 0 20px 0'}}>
-              <TextField onChange={(e) => { handleError(e); setVersion(e.target.value)}} onFocus={() => seterrorInputVersion('')} name='Version' onBlur={ (e) => handleError(e)} style={{width:'60%'}} placeholder="X.X.X" required label="Version"/>
+              <TextField onChange={(e) => { handleError(e); setVersion(e.target.value)}} onFocus={() => seterrorInputVersion('')} name='Version' onBlur={ (e) => handleError(e)} style={{width:'60%'}} required label="Version"/>
               {errorInputVersion ? <h5 style={{color:'red', margin:'0'}}>{errorInputVersion}</h5> : ''}
             </div>
             <div style={{padding:'20px 0 20px 0'}}>
@@ -199,9 +189,7 @@ export default function App(props) {
               </Select>
               {errorInputFrente ? <h5 style={{color:'red', margin:'0'}}>{errorInputFrente}</h5> : ''}
             </div>
-            <DragDrop tipoArchivos='Aplica' attachFiles={filesArray => setmyFiles(filesArray)} 
-            showAlert={(open, file) => { setOpenAlert(open); setMsgFile(file)}}/>
-            <DragDrop tipoArchivos='Rollback' attachFiles={filesArray => setmyRbkFiles(filesArray)} 
+            <DragDrop attachFiles={filesArray => setmyFiles(filesArray)} 
             showAlert={(open, file) => { setOpenAlert(open); setMsgFile(file)}}/>
             <Button className={styles.SubmitButton}
                     type="submit" value="Submit"
