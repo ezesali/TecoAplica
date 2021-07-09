@@ -2,6 +2,7 @@ import React, {useMemo, useState, useCallback, useEffect} from 'react';
 import {useDropzone} from 'react-dropzone';
 import IconButton from '@material-ui/core/IconButton';
 import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 const baseStyle = {
   flex: 1,
@@ -13,6 +14,7 @@ const baseStyle = {
   borderWidth: 2,
   borderRadius: 2,
   borderColor: 'black',
+  overflow:'auto',
   borderStyle: 'dashed',
   backgroundColor: '#fafafa',
   color: '#bdbdbd',
@@ -87,27 +89,58 @@ export default function DragDrop(props) {
 
   }, [myFiles,props])
 
-  const files = myFiles.map((file,index) => (
-    <div key={index} style={{display: 'flex', alignItems:'center', justifyContent:'center'}}>
-        <div style={{marginRight: '20px'}}>
-            - {file.path}
-        </div>
-        <IconButton id={file.path} onClick={removeFile(file)} size='small'>
-            <DeleteOutlineIcon style={{color:'red'}}/>
-        </IconButton>
-    </div>
-  ))
+  function handleOnDragEnd(result) {
+    if (!result.destination) return;
+
+    const items = Array.from(myFiles);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setMyFiles(items);
+  }
 
   return (
-    <div style={{alignItems:'center'}} className="container">
+    <div style={{alignItems:'center', justifyContent:''}} className="container">
         <div {...getRootProps({style})}>
             <input required {...getInputProps()} />
-            {myFiles.length > 0 ? <h1>{myFiles.length} {myFiles.length > 1 ? 'Archivos de '+ props.tipoArchivos + ' subidos': 'Archivo de ' + props.tipoArchivos +' subido'}</h1>: <p>Agrega los procedimientos y/o scripts que queres entregar en el {props.tipoArchivos} arrastrandolos o haciendo click en el cuadro</p>}
+            {myFiles.length > 0 ? 
+            <h2>{myFiles.length} {myFiles.length > 1 ? 
+              'Archivos de '+ props.tipoArchivos.substring(0,props.tipoArchivos.indexOf('_')) +'/'+ props.tipoArchivos.substring(props.tipoArchivos.indexOf('_')+ 1,props.tipoArchivos.length) + ' subidos'
+              : 
+              'Archivo de '+ props.tipoArchivos.substring(0,props.tipoArchivos.indexOf('_')) +'/'+ props.tipoArchivos.substring(props.tipoArchivos.indexOf('_')+ 1,props.tipoArchivos.length) + ' subido'}
+            </h2>
+            : 
+            <p>
+              Agrega en {props.tipoArchivos.substring(0,props.tipoArchivos.indexOf('_')) +'/'+ props.tipoArchivos.substring(props.tipoArchivos.indexOf('_')+ 1,props.tipoArchivos.length)} lo que 
+              vas a entregar arrastrandolos o haciendo click en el cuadro<br/>Ordenalos segun orden de ejecucion moviendolo a la posicion deseada
+            </p>}
         </div>
-        <aside style={{paddingBottom:'25px'}}>
-            {myFiles.length > 0 ? <h3>{props.tipoArchivos} Files</h3> : ''}
-            {files}
-        </aside>
+        {myFiles.length > 0 ? <h3>{props.tipoArchivos.substring(0,props.tipoArchivos.indexOf('_')) +'/'+ props.tipoArchivos.substring(props.tipoArchivos.indexOf('_')+ 1,props.tipoArchivos.length)} Files</h3> : ''} 
+        <DragDropContext onDragEnd={handleOnDragEnd}>
+          <Droppable droppableId="files">
+            {(provided) => (
+              <ul style={{listStyleType:'auto'}} className="files" {...provided.droppableProps} ref={provided.innerRef}>
+                {myFiles.map((file, index) => {
+                  return (
+                    <Draggable key={file.path} draggableId={file.path} index={index}>
+                      {(provided) => (
+                        <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                          <li>
+                            {file.path}
+                            <IconButton id={file.path} onClick={removeFile(file)} size='small'>
+                              <DeleteOutlineIcon style={{color:'red'}}/>
+                            </IconButton>
+                          </li>
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
+              </ul>
+            )}
+          </Droppable>
+        </DragDropContext>
     </div>
   );
 }

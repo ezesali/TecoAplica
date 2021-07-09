@@ -2,30 +2,16 @@ import React, {useEffect, useState} from 'react';
 import { TextField, Grid, Select } from '@material-ui/core';
 import IBMLogo from '../src/ibm-logo.webp';
 import DragDrop from '../src/components/Drag&Drop';
-import makeStyles  from '@material-ui/styles/makeStyles';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import { DialogContent, DialogActions, DialogTitle } from '@material-ui/core';
 import Typography from '@material-ui/core/Typography';
 import { isMobile } from 'react-device-detect';
 import sadFace from '../src/sadUnsupported.png';
-
-const useStyles = makeStyles({
-  SubmitButton: {
-    color: 'white', 
-    textDecoration: 'none', 
-    backgroundColor: '#5360D1', 
-    width:'10pc',
-    padding: '10px', 
-    borderRadius: '50px', 
-    display: 'inline-block',
-    cursor:'pointer'
-  },
-});
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 export default function App(props) {
-
-  const styles = useStyles();
 
   //const [files, setfiles] = useState([]);
   const [disableSubmit, setDisableSubmit] = useState(true);
@@ -33,28 +19,40 @@ export default function App(props) {
   const [errorInputCRQ, seterrorInputCRQ] = useState('');
   const [errorInputVersion, seterrorInputVersion] = useState('');
   const [errorInputFrente, seterrorInputFrente] = useState('');
+  const [errorInputComputerName, seterrorInputComputerName] = useState('');
 
+  const [ComputerName, setComputerName] = useState('');
   const [Name, setName] = useState('');
   const [CRQ, setCRQ] = useState('');
   const [Frente, setFrente] = useState('');
   const [Version, setVersion] = useState('');
-  const [myFiles, setmyFiles] = useState({});
-  const [myRbkFiles, setmyRbkFiles] = useState({});
+  const [myScriptFiles, setmyScriptFiles] = useState({});
+  const [myPlsFiles, setmyPlsFiles] = useState({});
+  const [myRbkPlsFiles, setmyRbkPlsFiles] = useState({});
+  const [myRbkScriptFiles, setmyRbkScriptFiles] = useState({});
   const [openAlert, setOpenAlert] = useState(false);
   const [MsgFile, setMsgFile] = useState([]);
   
   useEffect(() => {
     //files.forEach((file) => URL.revokeObjectURL(file.preview)); 
-    if (Name.length > 0 && errorInputName === '' && CRQ.length > 0 && errorInputCRQ === '' && Frente.length > 0 && errorInputFrente === '' && Version.length > 0 && errorInputVersion === '' && myFiles.length > 0 && myRbkFiles.length > 0 ){
+    if (ComputerName.length > 0 && errorInputComputerName === '' && Name.length > 0 && errorInputName === '' && 
+       CRQ.length > 0 && errorInputCRQ === '' && Frente.length > 0 && errorInputFrente === '' && Version.length > 0 && errorInputVersion === '' && 
+       (myPlsFiles.length > 0 || myScriptFiles.length > 0) && (myRbkPlsFiles.length > 0 || myRbkScriptFiles.length > 0)){
+
       setDisableSubmit(false);
     }
     else{
       setDisableSubmit(true);
     }
-  }, [Name, errorInputName, CRQ, errorInputCRQ, Frente, errorInputFrente,Version, errorInputVersion,myFiles, myRbkFiles]);
+  }, [ComputerName, errorInputComputerName, Name, errorInputName, CRQ, errorInputCRQ, Frente, errorInputFrente,Version, errorInputVersion,myScriptFiles,myPlsFiles, myRbkPlsFiles, myRbkScriptFiles]);
 
   function handleError(e) {    
     switch (e.target.name){
+      case 'Aplicante':
+        if (e.target.value === '' && e.target.required){
+          seterrorInputComputerName('El '+ e.target.name + ' es requerido para crear la paquetizacion');
+        }
+        break;
       case 'Nombre':
         if (e.target.value === '' && e.target.required){
           seterrorInputName('El '+ e.target.name + ' es requerido para crear la paquetizacion');
@@ -90,6 +88,7 @@ export default function App(props) {
         seterrorInputCRQ('')
         seterrorInputFrente('')
         seterrorInputVersion('')
+        seterrorInputComputerName('')
     }
   }
 
@@ -140,6 +139,294 @@ export default function App(props) {
     }
   }
 
+  async function handleDriverText(TipoAplica) {
+    
+    const getDrvText = await fetch('./PaqStructure/FRENTE_CRQ_VERSION/APLICA/DRIVER.drv')
+
+    const DrvText = await getDrvText.text()
+
+    let textArray = DrvText.split('\n')
+
+    for (var line=0; line < textArray.length;line++){
+
+      if (textArray[line].includes('$NAME')){
+
+        textArray[line] = textArray[line].replace('$NAME', Name.trim() )
+
+      }
+
+      if (textArray[line].includes('$DRIVER')){
+
+        if (TipoAplica === 'ROLLBACK')
+
+          textArray[line] = textArray[line].replace('$DRIVER', CRQ.trim() +'_ALL_01_Rollback' )
+        else{
+
+          textArray[line] = textArray[line].replace('$DRIVER', CRQ.trim() +'_ALL_01' )
+
+        }
+
+      }
+      if (textArray[line].includes('$COPYFILES')){
+
+        if (TipoAplica === 'APLICA'){
+
+          let scriptAplica = '';
+
+          if (myScriptFiles.length > 0){
+
+            myScriptFiles.forEach((file) =>{
+
+              scriptAplica = scriptAplica + '\ncopy c scripts ' + file.path;
+
+            });
+
+          }
+
+          if(myPlsFiles.length > 0){
+
+            myPlsFiles.forEach((file) =>{
+
+              scriptAplica = scriptAplica + '\ncopy c pls ' + file.path;
+
+            });
+
+          }
+
+          textArray[line] = textArray[line].replace('$COPYFILES',scriptAplica)
+
+        } 
+        else{
+
+          let scriptRbk = '';
+
+          if(myRbkPlsFiles.length > 0){
+
+            myRbkPlsFiles.forEach((file) =>{
+
+              scriptRbk = scriptRbk + '\ncopy c pls ' + file.path;
+
+            });
+
+          }
+
+
+          if (myRbkScriptFiles.length > 0){
+
+            myRbkScriptFiles.forEach((file) =>{
+
+              scriptRbk = scriptRbk + '\ncopy c scripts ' + file.path;
+
+            });
+
+          }
+
+          textArray[line] = textArray[line].replace('$COPYFILES',scriptRbk)
+        }
+        
+      }
+      if (textArray[line].includes('$SQLFILES')){
+
+        if (TipoAplica === 'APLICA'){
+
+          let scriptAplica = '';
+
+          if (myScriptFiles.length > 0){
+
+            myScriptFiles.forEach((file) =>{
+
+              scriptAplica = scriptAplica + '\nsql c scripts ' + file.path;
+
+            });
+
+          }
+
+          if(myPlsFiles.length > 0){
+
+            myPlsFiles.forEach((file) =>{
+
+              scriptAplica = scriptAplica + '\nsql c pls ' + file.path;
+
+            });
+
+          }
+
+          textArray[line] = textArray[line].replace('$SQLFILES',scriptAplica)
+
+        } 
+        else{
+
+          let scriptRbk = '';
+
+          if(myRbkPlsFiles.length > 0){
+
+            myRbkPlsFiles.forEach((file) =>{
+
+              scriptRbk = scriptRbk + '\nsql c pls ' + file.path;
+
+            });
+
+          }
+
+          if (myRbkScriptFiles.length > 0){
+
+            myRbkScriptFiles.forEach((file) =>{
+
+              scriptRbk = scriptRbk + '\nsql c scripts ' + file.path;
+
+            });
+
+          }
+
+          textArray[line] = textArray[line].replace('$SQLFILES',scriptRbk)
+        }
+
+      }
+      if (textArray[line].includes('$SYSDATE')){
+        
+        var actualDate = new Date();
+
+        textArray[line] = textArray[line].replace('$SYSDATE', actualDate.getDate() + '/'+ actualDate.getMonth()+ '/' +actualDate.getFullYear())
+
+      }
+      if (textArray[line].includes('$CRQ')){
+
+        textArray[line] = textArray[line].replace('$CRQ', CRQ.trim())
+
+      }
+      if (textArray[line].includes('$SYSNAME')){
+
+        textArray[line] = textArray[line].replace('$SYSNAME', ComputerName.trim())
+
+      }
+
+    }
+
+    let textFinal = textArray.join('\n')
+
+    //return textArray
+    return textFinal
+  }
+
+  const obtenerDefaultScript = async () =>{
+
+    const getGrant = await fetch('./PaqStructure/FRENTE_CRQ_VERSION/APLICA/c/scripts/Grant.sql')
+
+    const getRecompInv = await fetch('./PaqStructure/FRENTE_CRQ_VERSION/APLICA/c/scripts/RecompInv.sql')
+
+    const getRecompProcFun = await fetch('./PaqStructure/FRENTE_CRQ_VERSION/APLICA/c/scripts/RecompProcFun.sql')
+
+    
+    const GrantText = await getGrant.text()
+
+    const RecompInvText = await getRecompInv.text()
+
+    const RecompProcFunText = await getRecompProcFun.text()
+
+
+    var Grant = new File([GrantText], 'Grant.sql', {type: "text/plain"});
+
+    var RecompInv = new File([RecompInvText], 'RecompInv.sql', {type: "text/plain"});
+
+    var RecompProcFun = new File([RecompProcFunText], 'RecompProcFun.sql', {type: "text/plain"});
+
+    return [Grant, RecompInv, RecompProcFun]
+  }
+
+  const generateZipFolder = async () =>{
+
+    var zipEntrega = new JSZip();
+
+    const CablevisionArray = ['billing','Capacitacion','cobranzas','crm','global','inventario_red','ordenes'];
+    const ItemArray = ['framework', 'objetos','pls','scripts'];
+
+    var MainFolder = zipEntrega.folder(Frente + '_' + CRQ.trim() + '_' + Version);
+
+    var AplicaFolder = MainFolder.folder(CRQ.trim() +'_ALL_01');
+    var RollbackFolder = MainFolder.folder(CRQ.trim() +'_ALL_01_Rollback');
+
+    AplicaFolder.file(CRQ.trim() +'_ALL_01.drv', handleDriverText('APLICA'))
+    RollbackFolder.file(CRQ.trim() +'_ALL_01_Rollback.drv', handleDriverText('ROLLBACK'))
+
+    var Aplica_C = AplicaFolder.folder('c');
+    var Rollback_C = RollbackFolder.folder('c');
+
+    var Aplica_PLS = Aplica_C.folder('pls');
+
+    myPlsFiles.forEach((file) =>{
+
+      Aplica_PLS.file(file.path, file)
+
+    });
+
+    var Rollback_PLS = Rollback_C.folder('pls');
+
+    myRbkPlsFiles.forEach((file) =>{
+
+      Rollback_PLS.file(file.path, file)
+
+    });
+
+
+
+    var Aplica_Scripts = Aplica_C.folder('scripts');
+
+    myScriptFiles.forEach((file) =>{
+
+      Aplica_Scripts.file(file.path, file)
+    
+    });
+
+    var Rollback_Scripts = Rollback_C.folder('scripts');
+
+    myRbkScriptFiles.forEach((file) =>{
+
+      Rollback_Scripts.file(file.path, file)
+    
+    });
+
+    var defaultScriptCompiler = await obtenerDefaultScript();
+
+    defaultScriptCompiler.forEach(async (file) => {
+
+      Aplica_Scripts.file(file.name, file);
+      Rollback_Scripts.file(file.name, file);
+
+    });
+    
+    var AplicaCable = AplicaFolder.folder('Cablevision');
+    var RollbackCable = RollbackFolder.folder('Cablevision');
+    var folderCablevisionArrayAplica = [];
+    var folderCablevisionArrayRbk = [];
+
+    for(var i=0; i < CablevisionArray.length; i++){
+
+      folderCablevisionArrayAplica.push(AplicaCable.folder(CablevisionArray[i]));
+      folderCablevisionArrayRbk.push(RollbackCable.folder(CablevisionArray[i]));
+
+      for(var k=0; k < ItemArray.length; k++){
+
+        folderCablevisionArrayAplica[i].folder(ItemArray[k]);
+
+        folderCablevisionArrayRbk[i].folder(ItemArray[k]);
+      }
+    }
+
+
+    zipEntrega.generateAsync({type:"blob"})
+    .then(function(content) {
+        // see FileSaver.js
+        saveAs(content, Frente + '_' + CRQ.trim() + '_' + Version + '.zip');
+    });
+
+  }
+
+  const generarZip = () => {
+    console.log('Submit Form')
+
+    generateZipFolder();
+  }
+
   return (
     <div  style={{display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor:'grey' }}>
       {isMobile ? 
@@ -166,9 +453,13 @@ export default function App(props) {
             <h4>4- Carga los archivos de los Procedimientos/Scripts necesarios que tenes que entregar.</h4>
             <h4>5- Corrobora que todo este correcto y presiona Generar.<br/><br/>Listo! Esto te va a abrir una ventana donde vas a poder guardar el .zip con la entrega generada.</h4>
           </div>
-          <form style={{paddingTop:'40px', display:'-ms-grid'}} noValidate onSubmit={() => console.log('SUBMIT FORM')} autoComplete="off">
+          <form style={{paddingTop:'40px', display:'-ms-grid'}} noValidate autoComplete="off">
             <div style={{padding:'20px 0 20px 0'}}>
-              <TextField onChange={(e) => setName(e.target.value) } onFocus={() => seterrorInputName('')} name='Nombre' onBlur={ (e) => handleError(e)} autoFocus={true} style={{width:'60%'}} placeholder='CRQXXXXXXXXXX - Historia PRJ-XXX - CRM (IBM)' required label="Nombre/Descripcion del Aplica"/>
+              <TextField onChange={(e) => setComputerName(e.target.value) } onFocus={() => seterrorInputComputerName('')} name='Aplicante' onBlur={ (e) => handleError(e)} autoFocus={true} style={{width:'60%'}} placeholder='Coloque a nombre de quien va a estar el aplica' required label="Nombre del aplicante"/>
+              {errorInputComputerName ? <h5 style={{color:'red', margin:'0'}}>{errorInputComputerName}</h5> : ''}
+            </div>
+            <div style={{padding:'20px 0 20px 0'}}>
+              <TextField onChange={(e) => setName(e.target.value) } onFocus={() => seterrorInputName('')} name='Nombre' onBlur={ (e) => handleError(e)} style={{width:'60%'}} placeholder='CRQXXXXXXXXXX - Historia PRJ-XXX - CRM (IBM)' required label="Nombre/Descripcion del Aplica"/>
               {errorInputName ? <h5 style={{color:'red', margin:'0'}}>{errorInputName}</h5> : ''}
             </div>
             <div style={{padding:'20px 0 20px 0'}}>
@@ -199,12 +490,24 @@ export default function App(props) {
               </Select>
               {errorInputFrente ? <h5 style={{color:'red', margin:'0'}}>{errorInputFrente}</h5> : ''}
             </div>
-            <DragDrop tipoArchivos='Aplica' attachFiles={filesArray => setmyFiles(filesArray)} 
-            showAlert={(open, file) => { setOpenAlert(open); setMsgFile(file)}}/>
-            <DragDrop tipoArchivos='Rollback' attachFiles={filesArray => setmyRbkFiles(filesArray)} 
-            showAlert={(open, file) => { setOpenAlert(open); setMsgFile(file)}}/>
-            <Button className={styles.SubmitButton}
-                    type="submit" value="Submit"
+            <h3><u>APLICA</u></h3>
+            <Grid xl={6} item alignItems="center" style={{display:'flex', justifyContent:'center'}}>
+              <DragDrop tipoArchivos='Aplica_PLS' attachFiles={filesArray => setmyPlsFiles(filesArray)} 
+              showAlert={(open, file) => { setOpenAlert(open); setMsgFile(file)}}/>
+              <DragDrop tipoArchivos='Aplica_Script' attachFiles={filesArray => setmyScriptFiles(filesArray)} 
+              showAlert={(open, file) => { setOpenAlert(open); setMsgFile(file)}}/>
+            </Grid>
+            <h3><u>ROLLBACK</u></h3>
+            <Grid xl={6} item alignItems="center" style={{display:'flex', justifyContent:'center'}}>
+              <DragDrop tipoArchivos='Rollback_PLS' attachFiles={filesArray => setmyRbkPlsFiles(filesArray)} 
+              showAlert={(open, file) => { setOpenAlert(open); setMsgFile(file)}}/>
+              <DragDrop tipoArchivos='Rollback_Script' attachFiles={filesArray => setmyRbkScriptFiles(filesArray)} 
+              showAlert={(open, file) => { setOpenAlert(open); setMsgFile(file)}}/>
+            </Grid>              
+            <Button variant='outlined'
+                    size='large'
+                    style={{width:'30%', margin:'50px 0 70px 0'}}
+                    onClick={generarZip}
                     disabled={disableSubmit}>Generar</Button>
           </form>
           {showAlert()}

@@ -1,0 +1,34 @@
+#=================================================================
+#|Copyright (c) 2011 Oracle Corporation, Buenos Aires, Argentina
+#|All rights reserved.
+#=================================================================
+#|
+#|FILENAME
+#|    $NAME
+#|DESCRIPTION
+#|
+#|HISTORY
+#|$SYSDATE - $CRQ - $SYSNAME
+#=================================================================
+begin patch $DRIVER
+begin patch_info
+release 1
+server D
+language ALL
+end patch_info
+
+#copia de objetos
+$COPYFILES
+copy c scripts RecompProcFun.sql
+copy c scripts RecompInv.sql
+copy c scripts Grant.sql
+
+#compilacion de paquetes
+begin connection flex 
+$SQLFILES
+sql c scripts RecompProcFun.sql
+sql c scripts RecompInv.sql
+sql c scripts Grant.sql
+
+end connection flex
+end patch $DRIVER
