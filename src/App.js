@@ -286,7 +286,7 @@ export default function App(props) {
         
         var actualDate = new Date();
 
-        textArray[line] = textArray[line].replace('$SYSDATE', actualDate.getDate() + '/'+ actualDate.getMonth()+ '/' +actualDate.getFullYear())
+        textArray[line] = textArray[line].replace('$SYSDATE', actualDate.getDate() + '/'+ (actualDate.getMonth() + 1) + '/' +actualDate.getFullYear())
 
       }
       if (textArray[line].includes('$CRQ')){
